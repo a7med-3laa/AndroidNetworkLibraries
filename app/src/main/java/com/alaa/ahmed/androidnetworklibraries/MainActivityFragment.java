@@ -12,17 +12,20 @@ import android.view.ViewGroup;
 
 import com.alaa.ahmed.androidnetworklibraries.Adapter.Adapt;
 import com.alaa.ahmed.androidnetworklibraries.Model.Flower;
-import com.android.volley.Response;
-import com.android.volley.VolleyError;
-import com.android.volley.toolbox.JsonArrayRequest;
-import com.android.volley.toolbox.Volley;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 
 /**
  * A placeholder fragment containing a simple view.
@@ -48,34 +51,51 @@ public class MainActivityFragment extends Fragment {
         super.onActivityCreated(savedInstanceState);
     recycleview=(RecyclerView)rootView.findViewById(R.id.list);
         recycleview.setLayoutManager(new LinearLayoutManager(getActivity()));
-        // make Json Array Request
-        JsonArrayRequest jsonArrayRequest=new JsonArrayRequest(BASR_URL, new Response.Listener<JSONArray>() {
+// make okHttp cilent
+        OkHttpClient okHttpClient=new OkHttpClient();
+        Request request= new Request.Builder()
+                .url(BASR_URL)
+                .build();
+        // make the calling
+        okHttpClient.newCall(request).enqueue(new Callback() {
             @Override
-            public void onResponse(JSONArray response) {
-                List<Flower> flowers=new ArrayList<>();
-                for (int i = 0; i < response.length(); i++) {
+            public void onFailure(Call call, IOException e) {
 
-                    try {
-                        JSONObject itema = response.getJSONObject(i);
-                        String name = itema.getString("name");
-                        String photo = itema.getString("photo");
-                        String price = itema.getString("price");
-                        flowers.add(new Flower(name,photo,price));
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
-                }
-                adapt=new Adapt(flowers,getActivity());
-                recycleview.setAdapter(adapt);
             }
-        }, new Response.ErrorListener() {
+
             @Override
-            public void onErrorResponse(VolleyError error) {
-                Log.d("Volley ERRROR:",error.getMessage());
+            public void onResponse(Call call, Response response) throws IOException {
+                final List<Flower> flowers=new ArrayList<>();
+                try {
+                    // parsing json
+                    JSONArray jsonArray=new JSONArray(response.body().string());
+                    for(int i=0;i<jsonArray.length();i++){
+                        JSONObject itema=jsonArray.getJSONObject(i);
+                        String name=itema.getString("name");
+                        String photo=itema.getString("photo");
+                        String price=itema.getString("price");
+                        flowers.add(new Flower(name,photo,price));
+
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                // run code on the main thread(set the adapter)
+             getActivity().runOnUiThread(new Runnable() {
+                 @Override
+                 public void run() {
+                     adapt=new Adapt(flowers,getActivity());
+                     recycleview.setAdapter(adapt);
+
+                 }
+             });
             }
-        }
-        );
-        Volley.newRequestQueue(getActivity()).add(jsonArrayRequest);
+            }
+
+         );
+
+
     }
+
 }
 
