@@ -13,6 +13,7 @@ import android.widget.Toast;
 
 import com.alaa.ahmed.androidnetworklibraries.Adapter.Adapt;
 import com.alaa.ahmed.androidnetworklibraries.Model.Flower;
+import com.alaa.ahmed.androidnetworklibraries.Network.FlowersInterface;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -32,6 +33,12 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
+
 /**
  * A placeholder fragment containing a simple view.
  */
@@ -40,11 +47,9 @@ import java.util.List;
 * */
 
 public class MainActivityFragment extends Fragment {
-View rootView;
+    View rootView;
     RecyclerView recycleview;
     Adapt adapt;
-    private static final String BASE_URL="http://services.hanselandpetal.com/feeds/flowers.json";
-List<Flower> flowers=new ArrayList<>(); // list to store data form ION , and pass it into Adapter
     public MainActivityFragment() {
     }
 
@@ -60,33 +65,29 @@ List<Flower> flowers=new ArrayList<>(); // list to store data form ION , and pas
         super.onActivityCreated(savedInstanceState);
     recycleview=(RecyclerView)rootView.findViewById(R.id.list);
         recycleview.setLayoutManager(new LinearLayoutManager(getActivity()));
-// Start Ion
-        Ion.with(getActivity())
-                .load(BASE_URL) //load json URL
-                .asJsonArray(). //retrive response as Json Array (due to json format)
-                setCallback(new FutureCallback<JsonArray>() {
-                    @Override
-                    public void onCompleted(Exception e, JsonArray result) {
-                        //if there is any error
-                        if(e==null)
-                          {
-                     JsonObject jsonObject;
-                     for (int i = 0; i < result.size(); i++) {
-                         jsonObject = result.get(i).getAsJsonObject();
-                         String name = jsonObject.get("name").getAsString(); // get name of flower
-                         String photo = jsonObject.get("photo").getAsString(); // get photo of flower
-                         String price = jsonObject.get("price").getAsString(); //get price of flower
-                         flowers.add(new Flower(name, photo, price)); // add flower object to list
+            // make Retrofit Adapter
+        Retrofit retrofit=new Retrofit.Builder()
+                .baseUrl(FlowersInterface.BASE_URL)
+                .addConverterFactory(GsonConverterFactory.create()) // use Gson Adapter
+                .build();
+        FlowersInterface flowersInterface=retrofit.create(FlowersInterface.class);
+            // make callback mechanism
+        final Call<List<Flower>> flowers=flowersInterface.getposts();
 
-                     }
-                     adapt = new Adapt(flowers, getActivity());
-                     recycleview.setAdapter(adapt);
-                 }
-                    }
+        flowers.enqueue(new Callback<List<Flower>>() {
+            @Override
+            public void onResponse(Call<List<Flower>> call, Response<List<Flower>> response) {
+                      List<Flower> flo =response.body();// get Flower Data
 
-                });
+                           adapt=new Adapt(flo,getActivity());
+                            recycleview.setAdapter(adapt);
+            }
 
+            @Override
+            public void onFailure(Call<List<Flower>> call, Throwable t) {
 
+            }
+        });
     }
 
 
