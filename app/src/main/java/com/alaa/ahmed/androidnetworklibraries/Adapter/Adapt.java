@@ -10,7 +10,7 @@ import android.widget.TextView;
 
 import com.alaa.ahmed.androidnetworklibraries.Model.Flower;
 import com.alaa.ahmed.androidnetworklibraries.R;
-import com.squareup.picasso.Picasso;
+import com.koushikdutta.ion.Ion;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,7 +39,13 @@ private final String IMAGES_BASE_URL="http://services.hanselandpetal.com/photos/
     public void onBindViewHolder(DataHolder holder, int position) {
         holder.name.setText(flowers.get(position).getName());
         holder.price.setText(flowers.get(position).getPrice());
-        Picasso.with(context).load(IMAGES_BASE_URL+flowers.get(position).getPhoto()).into(holder.imageView);
+//   we will use ION instead of Picasso
+//        Picasso.with(context).load(IMAGES_BASE_URL+flowers.get(position).getPhoto()).into(holder.imageView);
+        Ion.with(context)
+                .load(IMAGES_BASE_URL+flowers.get(position).getPhoto()).withBitmap()
+                .placeholder(R.drawable.load_image)
+                .error(R.drawable.error_image)
+                .intoImageView(holder.imageView);
     }
 
     @Override

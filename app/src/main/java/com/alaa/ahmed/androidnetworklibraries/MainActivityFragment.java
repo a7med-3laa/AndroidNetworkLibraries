@@ -13,6 +13,11 @@ import android.widget.Toast;
 
 import com.alaa.ahmed.androidnetworklibraries.Adapter.Adapt;
 import com.alaa.ahmed.androidnetworklibraries.Model.Flower;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.koushikdutta.async.future.FutureCallback;
+import com.koushikdutta.ion.Ion;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -30,10 +35,16 @@ import java.util.List;
 /**
  * A placeholder fragment containing a simple view.
  */
+/*
+* when we use ION we dont need to Has AsyncTask since ion make it own Thread
+* */
+
 public class MainActivityFragment extends Fragment {
 View rootView;
     RecyclerView recycleview;
     Adapt adapt;
+    private static final String BASE_URL="http://services.hanselandpetal.com/feeds/flowers.json";
+List<Flower> flowers=new ArrayList<>(); // list to store data form ION , and pass it into Adapter
     public MainActivityFragment() {
     }
 
@@ -49,71 +60,35 @@ View rootView;
         super.onActivityCreated(savedInstanceState);
     recycleview=(RecyclerView)rootView.findViewById(R.id.list);
         recycleview.setLayoutManager(new LinearLayoutManager(getActivity()));
-// excute AsyncTask
- new FetchData().execute("http://services.hanselandpetal.com/feeds/flowers.json");
-  recycleview.setAdapter(adapt);
-    }
+// Start Ion
+        Ion.with(getActivity())
+                .load(BASE_URL) //load json URL
+                .asJsonArray(). //retrive response as Json Array (due to json format)
+                setCallback(new FutureCallback<JsonArray>() {
+                    @Override
+                    public void onCompleted(Exception e, JsonArray result) {
+                        //if there is any error
+                        if(e==null)
+                          {
+                     JsonObject jsonObject;
+                     for (int i = 0; i < result.size(); i++) {
+                         jsonObject = result.get(i).getAsJsonObject();
+                         String name = jsonObject.get("name").getAsString(); // get name of flower
+                         String photo = jsonObject.get("photo").getAsString(); // get photo of flower
+                         String price = jsonObject.get("price").getAsString(); //get price of flower
+                         flowers.add(new Flower(name, photo, price)); // add flower object to list
 
-    class FetchData extends AsyncTask<String,Void,List<Flower>>{
-     // get Json Data
-        URL url;
-        BufferedReader bufferedReader;
-StringBuilder stringBuilder=new StringBuilder();
-        HttpURLConnection httpURLConnection;
-        @Override
-        protected List<Flower> doInBackground(String... params) {
-            try {
+                     }
+                     adapt = new Adapt(flowers, getActivity());
+                     recycleview.setAdapter(adapt);
+                 }
+                    }
 
-                url = new URL(params[0]);
-                httpURLConnection = (HttpURLConnection) url.openConnection();
-                bufferedReader = new BufferedReader(new InputStreamReader(httpURLConnection.getInputStream()));
-                String temp;
-                while((temp=bufferedReader.readLine())!=null)
-                    stringBuilder.append(temp);
-
-
-            } catch (MalformedURLException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-                // call json parser function ," it's implementation at the end of the class"
-            return jsonParser(stringBuilder.toString());
-        }
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-        }
-
-        @Override
-        protected void onPostExecute(List<Flower> flowers) {
-            super.onPostExecute(flowers);
-            adapt=new Adapt(flowers,getActivity());
-            recycleview.setAdapter(adapt);
-        }
-
-        // PARSING JSON DATA INTO JAVA OBJECTS
-        private List<Flower> jsonParser(String url){
-       List<Flower> flowers=new ArrayList<>();
-            try {
-                JSONArray jsonArray=new JSONArray(url);
-                for(int i=0;i<jsonArray.length();i++){
-                    JSONObject itema=jsonArray.getJSONObject(i);
-                    String name=itema.getString("name");
-                    String photo=itema.getString("photo");
-                    String price=itema.getString("price");
-                    flowers.add(new Flower(name,photo,price));
-
-                }
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-
-
-            return flowers;}
+                });
 
 
     }
-}
+
+
+    }
+
