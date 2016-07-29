@@ -10,7 +10,6 @@ import android.widget.TextView;
 
 import com.alaa.ahmed.androidnetworklibraries.Model.Flower;
 import com.alaa.ahmed.androidnetworklibraries.R;
-import com.koushikdutta.ion.Ion;
 import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
